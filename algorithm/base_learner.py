@@ -93,6 +93,9 @@ class BaseLearner(AbstractLearner):
         output = self.agent.policy(x)
         return output
 
+    def validation_step(self, *args, **kwargs):
+        pass
+
     def configure_optimizers(self) -> List[Optimizer]:
         """Initialize Adam optimizer"""
         optimizer = optim.Adam(self.agent.parameters(), lr=self.args.lr)

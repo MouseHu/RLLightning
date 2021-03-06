@@ -30,11 +30,6 @@ class DQNLearner(BaseLearner):
             self.rollout(num_step=self.args.max_test_step, train=False)
         return loss
 
-    def validation_step(self, *args, **kwargs):
-        pass
-        # self.rollout(num_step=self.args.max_test_step, train=False)
-        # self.rollout(num_step=self.args.max_test_step, train=False)
-
     def explore_schedule(self, num_steps):
         return max(self.args.eps_end, self.args.eps_start - (num_steps + 0.0) / self.args.eps_last_frame)
 
