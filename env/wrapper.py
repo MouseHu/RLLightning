@@ -1,6 +1,6 @@
 import gym
-from gym import core, spaces
 import numpy as np
+from gym import spaces
 from gym.core import Wrapper
 from gym.spaces import Box
 
@@ -70,6 +70,7 @@ class ImageInputWarpper(gym.Wrapper):
         # info['ori_obs'] = ori_obs
         return obs.astype(np.uint8)
 
+
 class NHWCWrapper(Wrapper):
     def __init__(self, env):
         super(NHWCWrapper, self).__init__(env)
@@ -79,8 +80,8 @@ class NHWCWrapper(Wrapper):
         low, high, shape = obs_space.low, obs_space.high, obs_space.shape
         # print("www",low,high,shape)
         new_shape = shape[1:] + (shape[0],)
-        low = low.transpose((1,2,0))
-        high = high.transpose((1,2,0))
+        low = low.transpose((1, 2, 0))
+        high = high.transpose((1, 2, 0))
         self.observation_space = Box(low, high, shape=new_shape)
 
     def step(self, action):
@@ -103,7 +104,7 @@ class TimestepWrapper(Wrapper):
         # self.observation_space = gym.spaces.Box(low, high)
         self.time_step = 0
         self.max_step = env.unwrapped.spec.max_episode_steps
-        print("max_step: ",self.max_step)
+        print("max_step: ", self.max_step)
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
@@ -136,6 +137,33 @@ class EpisodicRewardWrapper(Wrapper):
 
     def reset(self):
         self.cum_reward = 0
+        return self.env.reset()
+
+
+class MonitorWrapper(Wrapper):
+    def __init__(self, env, gamma=0.99):
+        super(MonitorWrapper, self).__init__(env)
+        self.gamma = gamma
+        self.episode_reward = 0
+        self.discount_episode_reward = 0
+        self.episode_length = 0
+        self.num_episodes = 0
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        self.episode_reward += reward
+        self.discount_episode_reward += reward * (self.gamma ** self.episode_length)
+        self.episode_length += 1
+        if done:
+            self.num_episodes += 1
+            info['epi_length'] = self.episode_length
+            info['epi_returns'] = self.episode_reward
+            info['epi_discount_returns'] = self.discount_episode_reward
+            info['num_episodes'] = self.num_episodes
+        return obs, reward, done, info
+
+    def reset(self, **kwargs):
+        self.episode_length = self.episode_reward = self.discount_episode_reward = 0
         return self.env.reset()
 
 

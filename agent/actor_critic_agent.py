@@ -45,7 +45,7 @@ class ActorCriticAgent(Agent, nn.Module):
                           ).clip(-self.max_action, self.max_action)
         return action
 
-    def compute_loss(self, batch) -> [torch.Tensor, torch.Tensor, torch.Tensor]:
+    def compute_loss(self, batch, optimizer_idx) -> [torch.Tensor, torch.Tensor, torch.Tensor]:
         raise NotImplementedError
 
     def update_target(self, tau=1):
@@ -55,3 +55,4 @@ class ActorCriticAgent(Agent, nn.Module):
 
         for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
             target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
+

@@ -1,5 +1,4 @@
 import gym
-import numpy as np
 import torch
 
 from buffer.replay_buffer import ReplayBuffer
@@ -34,16 +33,8 @@ class Agent(object):
             if self.eval_env is not None:
                 self.eval_state = self.eval_env.reset()
 
-    def get_action(self, state, epsilon: float, train=True) -> int:
-        if np.random.random() < epsilon:
-            env = self.env if train else self.eval_env
-            action = env.action_space.sample()
-        else:
-            q_values = self.policy(state)
-            _, action = torch.max(q_values, dim=1)
-            action = int(action.item())
-
-        return action
+    def get_action(self, state, epsilon: float, train=True):
+        raise NotImplementedError
 
     @torch.no_grad()
     def step(self, state, epsilon: float = 0.0, train=True):

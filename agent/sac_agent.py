@@ -18,8 +18,9 @@ class SACAgent(ActorCriticAgent):
         self.actor_target = Actor(state_dim, action_dim, max_action)
         self.critic = Critic(state_dim, action_dim)
         self.critic_target = Critic(state_dim, action_dim)
-        self.setup_entropy()
         self.update_target()
+
+        self.setup_entropy()
 
     def policy(self, state):
         deterministic_policy, policy, _, _ = self.actor(state)
@@ -35,8 +36,9 @@ class SACAgent(ActorCriticAgent):
             action = action.cpu().data.numpy().flatten()
         return action
 
-    def compute_loss(self, batch) -> [torch.Tensor, torch.Tensor, torch.Tensor]:
+    def compute_loss(self, batch, optimizer_idx) -> [torch.Tensor, torch.Tensor, torch.Tensor]:
         states, actions, rewards, dones, next_states = batch
+
         _, actions_pi, logp_pi, entropy = self.actor(states)
         q1_pi, q2_pi, v = self.critic(states, actions_pi)
         q1, q2, v = self.critic(states, actions)
@@ -49,16 +51,34 @@ class SACAgent(ActorCriticAgent):
 
         q_loss = 0.5 * (F.mse_loss(q1, target_q) + F.mse_loss(q2, target_q))
         value_loss = 0.5 * F.mse_loss(v, v_backup)
+        actor_loss = (self.ent_coef * logp_pi - q1).mean()
 
         if 'auto' in self.args.ent_coef:
             ent_coef_loss = -(self.log_ent_coef * (logp_pi + self.target_entropy).detach()).mean()
         else:
             ent_coef_loss = 0
 
-        actor_loss = (self.ent_coef * logp_pi - q1).mean()
+        if optimizer_idx == 0:
+            loss = q_loss + value_loss
+        elif optimizer_idx == 1 and self.component.learner.num_steps % self.args.policy_delay == 0:
+            loss = actor_loss
+        elif optimizer_idx == 2:
+            loss = ent_coef_loss
+        else:
+            loss = 0
 
-        return q_loss, value_loss, actor_loss, ent_coef_loss, \
-               q1.mean(), q2.mean(), v.mean(), target_q.mean(), v_backup.mean()
+        train_info = {
+            "q_loss": q_loss,
+            "value_loss": value_loss,
+            "actor_loss": actor_loss,
+            "entropy_loss": ent_coef_loss,
+            "q1_mean": q1.mean(),
+            "q2_mean": q2.mean(),
+            "value_mean": v.mean(),
+            "target_q_mean": target_q.mean(),
+            "target_value_mean": v_backup.mean()
+        }
+        return loss, train_info
 
     def setup_entropy(self):
 

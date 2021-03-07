@@ -3,12 +3,12 @@ from argparse import Namespace
 import numpy as np
 import pytorch_lightning as pl
 import torch
-import torch.optim as optim
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from typing import List
 
 from buffer.dataset import RLDataset
+from utils.os_utils import merge_dicts
 
 
 class AbstractLearner(pl.LightningModule):
@@ -16,7 +16,10 @@ class AbstractLearner(pl.LightningModule):
         super().__init__()
         self._dataloader = None
 
-    def rollout(self, num_step, train=True):
+    def rollout(self, num_step):
+        raise NotImplementedError
+
+    def evaluate(self, num_episodes):
         raise NotImplementedError
 
     def populate(self, steps):
@@ -27,6 +30,9 @@ class AbstractLearner(pl.LightningModule):
 
     def configure_optimizers(self) -> List[Optimizer]:
         raise NotImplementedError
+
+    def validation_step(self, *args, **kwargs):
+        pass
 
     @property
     def dataloader(self):
@@ -54,7 +60,7 @@ class BaseLearner(AbstractLearner):
         self.agent = components.agent
         self.buffer = components.buffer
         self.args = args
-
+        self.components = components
         self.state = None
 
         # basic logging
@@ -63,24 +69,39 @@ class BaseLearner(AbstractLearner):
     def get_state(self, train=True):
         state = self.agent.state if train else self.agent.eval_state
         if len(state.shape) > 1:  # image input
-            state = state.astype(np.float) / 255.0
-        state = torch.tensor([state], device=self.device)
+            state = state.astype(np.float32) / 255.0
+        state = torch.tensor([state], device=self.device, dtype=torch.float32)
         return state
 
     def explore_schedule(self, num_steps):
         raise NotImplementedError
 
-    def rollout(self, num_step, train=True):
+    def rollout(self, num_step):
         # Rollout
         for i in range(num_step):
-            self.num_steps += 1 if train else 0
-            epsilon = self.explore_schedule(self.num_steps) if train else 0
-            new_state, reward, done, info = self.agent.step(self.get_state(train), epsilon, train)
-            if done:
-                prefix = 'train/' if train else 'eval/'
+            self.num_steps += 1
+            epsilon = self.explore_schedule(self.num_steps)
+            new_state, reward, done, info = self.agent.step(self.get_state(), epsilon, train=True)
+            if done and self.num_steps % self.args.log_freq == 0:
+                prefix = 'train/'
                 for k, v in info.items():
-                    self.log(prefix + k, v, on_step=True, prog_bar='return' in k)
-                self.log(prefix + 'steps', self.num_steps + (0 if train else i), prog_bar=True)
+                    if not isinstance(v, dict):  # dict value is temporally removed, it can be added in the future
+                        self.log(prefix + k, v, on_step=True, prog_bar='epi_returns' in k)
+                self.log(prefix + 'steps', self.num_steps, prog_bar=True)
+
+    def evaluate(self, num_episode):
+        infos = []
+        episodes = 0
+        while episodes < num_episode:
+            new_state, reward, done, info = self.agent.step(self.get_state(train=False), 0, train=False)
+            if done:
+                episodes += 1
+                infos.append(info)
+        prefix = 'eval/'
+        merged_info = merge_dicts(infos)
+        for k, v in merged_info.items():
+            self.log(prefix + k, v, on_step=True, prog_bar='epi_returns' in k)
+        self.log(prefix + 'steps', self.num_steps, prog_bar=True)
 
     def populate(self, steps: int = 1000) -> None:
         self.agent.reset(False)  # reset eval env
@@ -93,13 +114,8 @@ class BaseLearner(AbstractLearner):
         output = self.agent.policy(x)
         return output
 
-    def validation_step(self, *args, **kwargs):
-        pass
-
     def configure_optimizers(self) -> List[Optimizer]:
-        """Initialize Adam optimizer"""
-        optimizer = optim.Adam(self.agent.parameters(), lr=self.args.lr)
-        return [optimizer]
+        raise NotImplementedError
 
     def get_dataloader(self) -> DataLoader:
         """Initialize the Replay Buffer dataset used for retrieving experiences"""

@@ -18,7 +18,7 @@ def get_args():
     parser.add_argument("--seed", type=int, default=int(time.time()), dest="seed")
     parser.add_argument("--comment", type=str, default="test")
     parser.add_argument('--gamma', help='discount factor', type=np.float32, default=0.99)
-    parser.add_argument("--total_steps", type=int, default=int(1e7))
+    parser.add_argument("--total_steps", type=int, default=int(2e6))
     parser.add_argument("--lr", type=float, default=1e-4, help="learning rate")
     parser.add_argument('--agent', help='backend agent', type=str, default='dqn')
     parser.add_argument('--algo', help='backend algorithm', type=str, default='dqn')

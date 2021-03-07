@@ -20,7 +20,7 @@ import random
 #from attn_toy.env.rendering import *
 from copy import deepcopy
 import abc
-from env.warppers import ImageInputWarpper
+from env.wrapper import ImageInputWarpper
 import cv2
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.common.vec_env import VecFrameStack
