@@ -4,17 +4,17 @@ import pickle as pkl
 
 
 class StackReplayBuffer(object):
-    def __init__(self, args, components):
+    def __init__(self, args, component):
         self.args = args
-        self.components = components
+        self.component = component
         buffer_size = int(args.buffer_size)
 
         self.capacity = buffer_size
         self.curr_capacity = 0
         self.pointer = 0
 
-        self.obs_space = components.env.observation_space
-        self.action_shape = components.env.action_space.n
+        self.obs_space = component.env.observation_space
+        self.action_shape = component.env.action_space.n
         self.rews_scale = args.rews_scale
         self.frames = args.frames
 

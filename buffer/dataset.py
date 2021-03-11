@@ -1,7 +1,10 @@
 from torch.utils.data.dataset import IterableDataset, T_co
-from buffer.replay_buffer import ReplayBuffer
+from typing import Iterable
 from typing import Tuple
-import numpy as np
+
+from buffer.replay_buffer import ReplayBuffer
+from utils.os_utils import array_min2d
+
 
 class RLDataset(IterableDataset):
 
@@ -36,8 +39,20 @@ class RLDatasetMem(RLDataset):
             yield states[i], actions[i], rewards[i], dones[i], new_states[i]
 
 
-def array_min2d(x):
-    x = np.array(x).astype(np.float32)
-    if x.ndim >= 2:
-        return x
-    return x.reshape(-1, 1)
+class ExperienceSourceDataset(IterableDataset):
+    """
+    Implementation from PyTorch Lightning Bolts:
+    https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/datamodules/experience_source.py
+    Basic experience source dataset. Takes a generate_batch function that returns an iterator.
+    The logic for the experience source and how the batch is generated is defined the Lightning model itself
+    """
+
+    def __getitem__(self, index) -> T_co:
+        pass
+
+    def __init__(self, runner):
+        self.runner = runner
+
+    def __iter__(self) -> Iterable:
+        iterator = self.runner.generate_samples()
+        return iterator

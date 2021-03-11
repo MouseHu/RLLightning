@@ -10,8 +10,8 @@ from algorithm.base_learner import BaseLearner
 
 
 class ActorCriticLearner(BaseLearner):
-    def __init__(self, args: Namespace, components: Namespace) -> None:
-        super().__init__(args, components)
+    def __init__(self, args: Namespace, component: Namespace) -> None:
+        super().__init__(args, component)
         self.hparams = args
         print("Warming up ...")
         self.populate(self.args.warmup)
@@ -21,14 +21,11 @@ class ActorCriticLearner(BaseLearner):
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], nb_batch, optimizer_idx):
         # Calculate training loss
-        loss, train_info = self.agent.compute_loss(batch)
+        loss, train_info = self.agent.compute_loss(batch, optimizer_idx)
 
         if optimizer_idx == 0:
             if self.global_step % self.args.training_steps == 0:
                 self.rollout(num_step=self.args.training_freq)
-            # Soft update of target network
-            if self.global_step % self.args.target_freq == 0:
-                self.agent.update_target(tau=self.args.tau)
 
             # Evaluation
             if self.global_step % self.args.eval_freq == 0:
@@ -38,6 +35,10 @@ class ActorCriticLearner(BaseLearner):
                 for info_name, info_value in train_info.items():
                     self.log("losses/{}".format(info_name), info_value)
 
+        if optimizer_idx == 1:
+            # Soft update of target network
+            if self.global_step % self.args.target_freq * self.args.policy_delay == 0:
+                self.agent.update_target(tau=self.args.tau)
         return loss
 
     def configure_optimizers(self) -> List[Optimizer]:
@@ -49,7 +50,7 @@ class ActorCriticLearner(BaseLearner):
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--target_freq", type=int, default=100,
+        parser.add_argument("--target_freq", type=int, default=1,
                             help="how many frames do we update the target network")
         parser.add_argument("--training_freq", type=int, default=100, help="how frequently do we train our network")
         parser.add_argument("--training_steps", type=int, default=100,
@@ -57,7 +58,7 @@ class ActorCriticLearner(BaseLearner):
         parser.add_argument("--max_test_step", type=int, default=5000, help="max steps for testing")
         parser.add_argument("--policy_delay", type=int, default=2, help="delay policy update")
         parser.add_argument("--eval_freq", type=int, default=5000, help="evaluation freq")
-        parser.add_argument("--log_freq", type=int, default=100, help="loggging freq")
+        parser.add_argument("--log_freq", type=int, default=100, help="logging freq")
         parser.add_argument("--tau", type=float, default=0.005, help="Polyak averaging coefficient")
         parser.add_argument("--policy_noise", type=float, default=0.2, help="Exloration std for gaussian noise")
         parser.add_argument("--actor_lr", type=float, default=3e-4, help="Learning rate for actor")
@@ -71,18 +72,18 @@ class ActorCriticLearner(BaseLearner):
 
 
 class DDPGLearner(ActorCriticLearner):
-    def __init__(self, args: Namespace, components: Namespace) -> None:
-        super().__init__(args, components)
+    def __init__(self, args: Namespace, component: Namespace) -> None:
+        super().__init__(args, component)
 
 
 class TD3Learner(ActorCriticLearner):
-    def __init__(self, args: Namespace, components: Namespace) -> None:
-        super().__init__(args, components)
+    def __init__(self, args: Namespace, component: Namespace) -> None:
+        super().__init__(args, component)
 
 
 class SACLearner(ActorCriticLearner):
-    def __init__(self, args: Namespace, components: Namespace) -> None:
-        super().__init__(args, components)
+    def __init__(self, args: Namespace, component: Namespace) -> None:
+        super().__init__(args, component)
 
     def configure_optimizers(self) -> List[Optimizer]:
         """Initialize Adam optimizer"""

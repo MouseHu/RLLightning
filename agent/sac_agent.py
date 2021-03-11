@@ -65,7 +65,7 @@ class SACAgent(ActorCriticAgent):
         elif optimizer_idx == 2:
             loss = ent_coef_loss
         else:
-            loss = 0
+            loss = None
 
         train_info = {
             "q_loss": q_loss,

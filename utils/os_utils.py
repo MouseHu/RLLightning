@@ -1,7 +1,8 @@
 import argparse
-import numpy as np
-from numbers import Number
 from itertools import chain
+from numbers import Number
+import numpy as np
+
 
 def str2bool(value):
     value = str(value)
@@ -22,6 +23,13 @@ def remove_color(key):
     return key
 
 
+def array_min2d(x):
+    x = np.array(x).astype(np.float32)
+    if x.ndim >= 2:
+        return x
+    return x.reshape(-1, 1)
+
+
 # merge all dicts and return average from each value
 # ignore those can't be averaged
 def merge_dicts(infos):
@@ -33,3 +41,4 @@ def merge_dicts(infos):
             mean_value = np.nanmean(values)
             merged_info[k] = mean_value
     return merged_info
+

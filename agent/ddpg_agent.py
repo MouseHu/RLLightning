@@ -17,7 +17,7 @@ class DDPGAgent(ActorCriticAgent):
         self.critic_target = Critic(state_dim, action_dim)
         self.update_target()
 
-    def compute_loss(self, batch) -> [torch.Tensor, torch.Tensor, torch.Tensor]:
+    def compute_loss(self, batch, optimizer_idx) -> [torch.Tensor, torch.Tensor, torch.Tensor]:
         states, actions, rewards, dones, next_states = batch
 
         with torch.no_grad():
@@ -28,5 +28,17 @@ class DDPGAgent(ActorCriticAgent):
         critic_loss = F.mse_loss(q, target_q)
         actor_loss = -self.critic(states, self.actor(states)).mean()
 
-        return critic_loss, actor_loss, torch.mean(q), torch.mean(target_q)
+        train_info = {
+            "critic_loss": critic_loss,
+            "actor_loss": actor_loss,
+            "q_mean": torch.mean(q),
+            "q_target_mean": torch.mean(target_q)
+        }
+
+        if optimizer_idx == 0:
+            loss = critic_loss
+        else:
+            loss = actor_loss
+
+        return loss, train_info
 

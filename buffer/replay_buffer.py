@@ -7,7 +7,7 @@ from typing import List, Union
 
 
 class ReplayBuffer(object):
-    def __init__(self, args, components):
+    def __init__(self, args, component):
         """
         Implements a ring buffer (FIFO).
 
@@ -15,7 +15,7 @@ class ReplayBuffer(object):
             memories are dropped.
         """
         self.args = args
-        self.components = components
+        self.component = component
         size = args.buffer_size
         self._storage = []
         self._maxsize = size

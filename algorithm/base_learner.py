@@ -6,7 +6,7 @@ import torch
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from typing import List
-
+from numbers import Number
 from buffer.dataset import RLDataset
 from utils.os_utils import merge_dicts
 
@@ -53,14 +53,14 @@ class AbstractLearner(pl.LightningModule):
 
 
 class BaseLearner(AbstractLearner):
-    def __init__(self, args: Namespace, components: Namespace) -> None:
+    def __init__(self, args: Namespace, component: Namespace) -> None:
         super().__init__()
 
-        self.env = components.env
-        self.agent = components.agent
-        self.buffer = components.buffer
+        self.env = component.env
+        self.agent = component.agent
+        self.buffer = component.buffer
         self.args = args
-        self.components = components
+        self.component = component
         self.state = None
 
         # basic logging
@@ -82,10 +82,10 @@ class BaseLearner(AbstractLearner):
             self.num_steps += 1
             epsilon = self.explore_schedule(self.num_steps)
             new_state, reward, done, info = self.agent.step(self.get_state(), epsilon, train=True)
-            if done and self.num_steps % self.args.log_freq == 0:
+            if done or self.num_steps % self.args.log_freq == 0:
                 prefix = 'train/'
                 for k, v in info.items():
-                    if not isinstance(v, dict):  # dict value is temporally removed, it can be added in the future
+                    if isinstance(v, Number):  # dict value is temporally removed, it can be added in the future
                         self.log(prefix + k, v, on_step=True, prog_bar='epi_returns' in k)
                 self.log(prefix + 'steps', self.num_steps, prog_bar=True)
 
@@ -93,7 +93,7 @@ class BaseLearner(AbstractLearner):
         infos = []
         episodes = 0
         while episodes < num_episode:
-            new_state, reward, done, info = self.agent.step(self.get_state(train=False), 0, train=False)
+            new_state, reward, done, info, *_ = self.agent.step(self.get_state(train=False), 0, train=False)
             if done:
                 episodes += 1
                 infos.append(info)
@@ -104,7 +104,7 @@ class BaseLearner(AbstractLearner):
         self.log(prefix + 'steps', self.num_steps, prog_bar=True)
 
     def populate(self, steps: int = 1000) -> None:
-        self.agent.reset(False)  # reset eval env
+        self.agent.reset(train=False)  # reset eval env
         self.agent.reset()
         for i in range(steps):
             self.num_steps += 1

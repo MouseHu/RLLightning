@@ -5,7 +5,7 @@ from buffer.replay_buffer import ReplayBuffer
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, args,components):
+    def __init__(self, args,component):
         """
         Create Prioritized Replay buffer.
 
@@ -15,7 +15,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             are dropped.
         :param alpha: (float) how much prioritization is used (0 - no prioritization, 1 - full prioritization)
         """
-        super(PrioritizedReplayBuffer, self).__init__(args,components)
+        super(PrioritizedReplayBuffer, self).__init__(args,component)
         assert args.alpha >= 0
         self._alpha = args.alpha
 

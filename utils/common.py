@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import time
 from argparse import Namespace
@@ -11,7 +12,20 @@ from buffer import buffer_list
 from utils.create_env import *
 
 
-def get_args():
+def get_meta_args():
+    parser = argparse.ArgumentParser(description='RL Meta Argparser')
+    parser.add_argument('--agent', help='backend agent', type=str, default='dqn')
+    parser.add_argument('--algo', help='backend algorithm', type=str, default='dqn')
+    parser.add_argument("--env_type", help='which type of env to use', type=str, default='Atari')
+    parser.add_argument("--eval_on_same", help='whether or not to eval on same env', type=bool, default=True)
+    parser.add_argument('--load_json',
+                        help='Load settings from file in json format. Command line options override values in file.')
+    args, _ = parser.parse_known_args()
+
+    return args
+
+
+def get_parser(meta_args):
     parser = argparse.ArgumentParser(description='RL Argparser')
 
     # basic
@@ -20,27 +34,35 @@ def get_args():
     parser.add_argument('--gamma', help='discount factor', type=np.float32, default=0.99)
     parser.add_argument("--total_steps", type=int, default=int(2e6))
     parser.add_argument("--lr", type=float, default=1e-4, help="learning rate")
-    parser.add_argument('--agent', help='backend agent', type=str, default='dqn')
-    parser.add_argument('--algo', help='backend algorithm', type=str, default='dqn')
-    parser.add_argument("--env_type", help='which type of env to use', type=str, default='Atari')
-    args, _ = parser.parse_known_args()
 
     # environment
-    parser.add_argument("--eval_on_same", help='whether or not to eval on same env', type=bool, default=True)
-    parser = add_env_args(parser, args)
+    parser = add_env_args(parser, meta_args)
 
     # algorithm
-    lit_model = algo_list.get(args.algo)
+    lit_model = algo_list.get(meta_args.algo)
     parser = pl.Trainer.add_argparse_args(parser)
     parser = lit_model.add_model_specific_args(parser)
 
     # buffer
     parser.add_argument('--buffer', help='type of replay buffer', type=str, default='default')
-    parser.add_argument('--batch_size', help='size of sample batch', type=np.int32, default=32)
-    parser.add_argument('--buffer_size', help='number of transitions in replay buffer', type=np.int32, default=200000)
+    parser.add_argument('--batch_size', help='size of sample batch', type=int, default=200)
+    parser.add_argument('--buffer_size', help='number of transitions in replay buffer', type=np.int32, default=50000)
     parser.add_argument('--warmup', help='number of timesteps for buffer warmup', type=np.int32, default=10000)
 
-    args = parser.parse_args()
+    return parser
+
+
+def get_args():
+    # args = get_parser().parse_args()
+    meta_args = get_meta_args()
+    args = Namespace()
+    if meta_args.load_json:
+        with open(meta_args.load_json, 'rt') as f:
+            json_dict = json.load(f)
+            args.__dict__.update(json_dict)
+            meta_args.__dict__.update(json_dict)
+    args, _ = get_parser(meta_args).parse_known_args(namespace=args)
+    args.__dict__.update(meta_args.__dict__)
     return args
 
 

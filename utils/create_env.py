@@ -32,8 +32,8 @@ def create_env(args, eval=False):
         raise NotImplementedError
 
 
-def add_atari_args(parser):
-    for prefix in ["", "eval_"]:
+def add_atari_args(parser,prefixes):
+    for prefix in prefixes:
         parser.add_argument('--' + prefix + 'env_name', help='which atari env to use', type=str, default="CartPole-v0")
         parser.add_argument('--' + prefix + 'sticky', help='whether to use sticky actions', type=str2bool,
                             default=False)
@@ -47,8 +47,8 @@ def add_atari_args(parser):
     return parser
 
 
-def add_mujoco_args(parser):
-    for prefix in ["", "eval_"]:
+def add_mujoco_args(parser,prefixes):
+    for prefix in prefixes:
         parser.add_argument('--' + prefix + 'env_name', help='which mujoco env to use', type=str,
                             default="HalfCheetah-v2")
         parser.add_argument('--' + prefix + 'delay_step', help='whether to use truly done signal', type=int, default=0)
@@ -57,18 +57,21 @@ def add_mujoco_args(parser):
     return parser
 
 
-def add_toy_args(parser):
+def add_toy_args(parser,prefixes):
     # parser.add_argument('--env_name', help='which env to use', type=str, default="HalfCheetah-v2")
     return parser
 
 
 def add_env_args(parser, args):
+    prefixes = [""]
+    if not args.eval_on_same:
+        prefixes.append("eval_")
     if args.env_type in ["MuJoCo", "mujoco", "MUJOCO"]:
-        parser = add_mujoco_args(parser)
+        parser = add_mujoco_args(parser,prefixes)
     elif args.env_type in ["Atari", "atari"]:
-        parser = add_atari_args(parser)
+        parser = add_atari_args(parser,prefixes)
     elif args.env_type in ["fourrooms", "Fourrooms", "toy", "TOY"]:
-        parser = add_toy_args(parser)
+        parser = add_toy_args(parser,prefixes)
     else:
         raise NotImplementedError
     return parser

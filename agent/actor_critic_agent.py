@@ -16,10 +16,10 @@ class ActorCriticAgent(Agent, nn.Module):
     def __init__(self, args, component) -> None:
         Agent.__init__(self, component.env, component.eval_env, component.buffer, args)
         nn.Module.__init__(self)
+        self.component = component
         self.gamma = args.gamma
-        self.noise_clip = args.noise_clip
 
-        assert isinstance(self.env.action_space, Box), "DDPG only support continuous action spaces!"
+        assert isinstance(self.env.action_space, Box), "Currently actor-critic only support continuous action spaces!"
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.shape[0]
         self.max_action = float(self.env.action_space.high[0])
@@ -56,3 +56,23 @@ class ActorCriticAgent(Agent, nn.Module):
         for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
             target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
+    @torch.no_grad()
+    def step(self, state, epsilon: float = 0.0, train=True):
+
+        action = self.get_action(state, epsilon, train)
+
+        # do step in the environment
+        env = self.env if train else self.eval_env
+        new_state, reward, done, info = env.step(action)
+        if train:
+            truly_done = info.get("truly_done", done)
+            self.replay_buffer.add(self.state, action, reward, truly_done, new_state)
+
+        if train:
+            self.state = new_state
+        else:
+            self.eval_state = new_state
+
+        if done:
+            self.reset(train)
+        return new_state, reward, done, info

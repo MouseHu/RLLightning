@@ -3,8 +3,8 @@ import numpy as np
 
 
 class NStepReplayBuffer(ReplayBuffer):
-    def __init__(self, args, components):
-        super(NStepReplayBuffer, self).__init__(args, components)
+    def __init__(self, args, component):
+        super(NStepReplayBuffer, self).__init__(args, component)
         self.num_step = args.num_step
         self.gamma = args.gamma
 

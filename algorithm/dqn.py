@@ -10,8 +10,8 @@ from algorithm.base_learner import BaseLearner
 
 
 class DQNLearner(BaseLearner):
-    def __init__(self, args: Namespace, components: Namespace) -> None:
-        super().__init__(args, components)
+    def __init__(self, args: Namespace, component: Namespace) -> None:
+        super().__init__(args, component)
         self.hparams = args
         print("Warming up ...")
         self.populate(self.args.warmup)

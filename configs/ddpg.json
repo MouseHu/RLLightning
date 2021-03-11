@@ -1,0 +1,15 @@
+{
+  "algo": "ddpg",
+  "agent": "ddpg",
+  "batch_size": 100,
+  "actor_lr": 1e-3,
+  "critic_lr": 1e-3,
+  "buffer": "default",
+  "buffer_size": 50000,
+  "tau": 0.005,
+  "gamma": 0.99,
+  "explore_noise": 0.1,
+  "training_freq": 100,
+  "training_steps": 100,
+  "warmup": 25000
+}

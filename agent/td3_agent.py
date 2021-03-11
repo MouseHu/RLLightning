@@ -8,9 +8,9 @@ from network.td3_model import Actor, Critic
 class TD3Agent(ActorCriticAgent):
     def __init__(self, args, component) -> None:
         super(TD3Agent, self).__init__(args, component)
-        state_dim = self.state_dim
-        action_dim = self.action_dim
-        max_action = self.max_action
+        state_dim, action_dim, max_action = self.state_dim, self.action_dim, self.max_action
+        self.noise_clip = args.noise_clip * max_action
+        self.policy_noise = args.policy_noise * max_action
 
         self.actor = Actor(state_dim, action_dim, max_action)
         self.actor_target = Actor(state_dim, action_dim, max_action)
@@ -45,8 +45,8 @@ class TD3Agent(ActorCriticAgent):
 
         if optimizer_idx == 0:
             loss = critic_loss
-        elif optimizer_idx == 1 and self.component.learner.num_steps % self.args.policy_delay == 0:
+        elif optimizer_idx == 1 and self.component.learner.global_step % self.args.policy_delay == 0:
             loss = actor_loss
         else:
-            loss = 0
+            loss = None
         return loss, train_info
