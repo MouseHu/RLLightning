@@ -2,7 +2,7 @@ import cv2
 import gym
 import numpy as np
 
-from utils.os_utils import remove_color
+from utils.func_utils import remove_color
 
 
 class VanillaEnv():

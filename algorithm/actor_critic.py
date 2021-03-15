@@ -7,6 +7,8 @@ from torch.optim.optimizer import Optimizer
 from typing import Tuple, List
 
 from algorithm.base_learner import BaseLearner
+import numpy as np
+from torch import nn
 
 
 class ActorCriticLearner(BaseLearner):
@@ -84,21 +86,24 @@ class TD3Learner(ActorCriticLearner):
 class SACLearner(ActorCriticLearner):
     def __init__(self, args: Namespace, component: Namespace) -> None:
         super().__init__(args, component)
+        # self.component.agent.setup_entropy(self.device)
+        # self.setup_entropy()
 
     def configure_optimizers(self) -> List[Optimizer]:
         """Initialize Adam optimizer"""
-        critic_optimizer = optim.Adam(self.agent.actor.parameters(), lr=self.args.critic_lr)
-        actor_optimizer = optim.Adam(self.agent.critic.parameters(), lr=self.args.actor_lr)
+        critic_optimizer = optim.Adam(self.agent.critic.parameters(), lr=self.args.critic_lr)
+        actor_optimizer = optim.Adam(self.agent.actor.parameters(), lr=self.args.actor_lr)
         optimizers = [critic_optimizer, actor_optimizer]
         if 'auto' in self.args.ent_coef:
-            entropy_optimizer = optim.Adam(self.ent_coef, lr=self.args.entropy_lr)
+            entropy_optimizer = optim.Adam([self.agent.log_ent_coef], lr=self.args.entropy_lr)
             optimizers.append(entropy_optimizer)
         return optimizers
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
-        parser = super().add_model_specific_args(parent_parser)
+        parser = ActorCriticLearner.add_model_specific_args(parent_parser)
         parser.add_argument("--target_entropy", type=str, default="auto", help="target entropy")
         parser.add_argument("--ent_coef", type=str, default="auto", help="ent_coef")
+        parser.add_argument("--entropy_lr", type=float, default=3e-4, help="learning rate for ent_coef")
 
         return parser

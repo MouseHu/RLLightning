@@ -1,7 +1,7 @@
 from env.monitor import Monitor
 from env.vanilla import VanillaEnv
 from env.wrapper import *
-from utils.os_utils import str2bool
+from utils.func_utils import str2bool
 
 
 def create_atari_env(args, eval=False):
@@ -13,12 +13,14 @@ def create_mujoco_env(args, eval=False):
     env = TimestepWrapper(env)
     env = DelayedRewardWrapper(env, args.delay_step if not eval else args.eval_delay_step)
     env = Monitor(env, None)
-    env = MonitorWrapper(env,args.gamma)
+    env = MonitorWrapper(env, args.gamma)
     return env
 
 
 def create_toy_env(args, eval=False):
-    return gym.make(args.env_name if not eval else args.eval_env_name)
+    env = gym.make(args.env_name if not eval else args.eval_env_name)
+    env = MonitorWrapper(env)
+    return env
 
 
 def create_env(args, eval=False):
@@ -32,7 +34,7 @@ def create_env(args, eval=False):
         raise NotImplementedError
 
 
-def add_atari_args(parser,prefixes):
+def add_atari_args(parser, prefixes):
     for prefix in prefixes:
         parser.add_argument('--' + prefix + 'env_name', help='which atari env to use', type=str, default="CartPole-v0")
         parser.add_argument('--' + prefix + 'sticky', help='whether to use sticky actions', type=str2bool,
@@ -47,7 +49,7 @@ def add_atari_args(parser,prefixes):
     return parser
 
 
-def add_mujoco_args(parser,prefixes):
+def add_mujoco_args(parser, prefixes):
     for prefix in prefixes:
         parser.add_argument('--' + prefix + 'env_name', help='which mujoco env to use', type=str,
                             default="HalfCheetah-v2")
@@ -57,8 +59,10 @@ def add_mujoco_args(parser,prefixes):
     return parser
 
 
-def add_toy_args(parser,prefixes):
+def add_toy_args(parser, prefixes):
     # parser.add_argument('--env_name', help='which env to use', type=str, default="HalfCheetah-v2")
+    for prefix in prefixes:
+        parser.add_argument('--' + prefix + 'env_name', help='which atari env to use', type=str, default="CartPole-v0")
     return parser
 
 
@@ -67,11 +71,11 @@ def add_env_args(parser, args):
     if not args.eval_on_same:
         prefixes.append("eval_")
     if args.env_type in ["MuJoCo", "mujoco", "MUJOCO"]:
-        parser = add_mujoco_args(parser,prefixes)
+        parser = add_mujoco_args(parser, prefixes)
     elif args.env_type in ["Atari", "atari"]:
-        parser = add_atari_args(parser,prefixes)
+        parser = add_atari_args(parser, prefixes)
     elif args.env_type in ["fourrooms", "Fourrooms", "toy", "TOY"]:
-        parser = add_toy_args(parser,prefixes)
+        parser = add_toy_args(parser, prefixes)
     else:
         raise NotImplementedError
     return parser

@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from itertools import chain
 
 from agent.actor_critic_agent import ActorCriticAgent
 from network.sac_model import Actor, Critic
@@ -10,6 +11,8 @@ from network.sac_model import Actor, Critic
 class SACAgent(ActorCriticAgent):
     def __init__(self, args, component) -> None:
         super(SACAgent, self).__init__(args, component)
+        self.log_ent_coef = None
+
         state_dim = self.state_dim
         action_dim = self.action_dim
         max_action = self.max_action
@@ -19,12 +22,17 @@ class SACAgent(ActorCriticAgent):
         self.critic = Critic(state_dim, action_dim)
         self.critic_target = Critic(state_dim, action_dim)
         self.update_target()
-
         self.setup_entropy()
 
     def policy(self, state):
         deterministic_policy, policy, _, _ = self.actor(state)
         return deterministic_policy, policy
+
+    def parameters(self):
+        if 'auto' in self.args.ent_coef:
+            return chain(self.actor.parameters(), self.critic.parameters(), [self.log_ent_coef])
+        else:
+            return chain(self.actor.parameters(), self.critic.parameters())
 
     def get_action(self, state, epsilon: float, train=True) -> int:
         if np.random.random() < epsilon:
@@ -41,22 +49,29 @@ class SACAgent(ActorCriticAgent):
 
         _, actions_pi, logp_pi, entropy = self.actor(states)
         q1_pi, q2_pi, v = self.critic(states, actions_pi)
-        q1, q2, v = self.critic(states, actions)
+        q1, q2, _ = self.critic(states, actions)
+        # print("here", self.log_ent_coef.requires_grad, optimizer_idx)
+        if isinstance(self.args.ent_coef, str) and self.args.ent_coef.startswith('auto'):
+            ent_coef = self.log_ent_coef.exp()
+        else:
+            ent_coef = float(self.args.ent_coef)
 
         with torch.no_grad():
             target_value = self.critic_target.Value(next_states)
-            min_q_pi = torch.min(q1_pi, q2_pi)
+            min_q_pi = torch.min(q1_pi, q2_pi).squeeze()
             target_q = rewards + (1 - dones) * self.gamma * target_value
-            v_backup = min_q_pi - self.ent_coef * logp_pi
+            v_backup = min_q_pi - ent_coef * logp_pi
 
         q_loss = 0.5 * (F.mse_loss(q1, target_q) + F.mse_loss(q2, target_q))
-        value_loss = 0.5 * F.mse_loss(v, v_backup)
-        actor_loss = (self.ent_coef * logp_pi - q1).mean()
+        value_loss = 0.5 * F.mse_loss(v.squeeze(), v_backup)
+        # actor_loss = (ent_coef.detach() * logp_pi - q1).mean()
+        actor_loss = (ent_coef * logp_pi - q1_pi).mean()
 
         if 'auto' in self.args.ent_coef:
             ent_coef_loss = -(self.log_ent_coef * (logp_pi + self.target_entropy).detach()).mean()
         else:
-            ent_coef_loss = 0
+            ent_coef_loss = None
+        # ent_coef_loss = None
 
         if optimizer_idx == 0:
             loss = q_loss + value_loss
@@ -71,10 +86,12 @@ class SACAgent(ActorCriticAgent):
             "q_loss": q_loss,
             "value_loss": value_loss,
             "actor_loss": actor_loss,
-            "entropy_loss": ent_coef_loss,
+            "critic_loss": value_loss+q_loss,
+            "entropy_loss": ent_coef_loss if ent_coef_loss is not None else 0,
             "q1_mean": q1.mean(),
             "q2_mean": q2.mean(),
             "value_mean": v.mean(),
+            "logp_pi": logp_pi.mean(),
             "target_q_mean": target_q.mean(),
             "target_value_mean": v_backup.mean()
         }
@@ -83,21 +100,20 @@ class SACAgent(ActorCriticAgent):
     def setup_entropy(self):
 
         if self.args.target_entropy == 'auto':
-            self.target_entropy = -np.prod(self.action_space.shape).astype(np.float32)
+            self.target_entropy = -np.prod(self.env.action_space.shape).astype(np.float32)
         else:
             self.target_entropy = float(self.args.target_entropy)
-
+        print("target_entropy",self.target_entropy)
         if isinstance(self.args.ent_coef, str) and self.args.ent_coef.startswith('auto'):
             # Default initial value of ent_coef when learned
             init_value = 1.0
             if '_' in self.args.ent_coef:
                 init_value = float(self.args.ent_coef.split('_')[1])
                 assert init_value > 0., "The initial value of ent_coef must be greater than 0"
-
             self.log_ent_coef = nn.Parameter(torch.tensor([init_value], requires_grad=True))
-            self.ent_coef = self.log_ent_coef.exp()
-        else:
-            # Force conversion to float
-            # this will throw an error if a malformed string (different from 'auto')
-            # is passed
-            self.ent_coef = float(self.ent_coef)
+            # self.ent_coef = self.log_ent_coef.exp().type_as(self.log_ent_coef)
+        # else:
+        # Force conversion to float
+        # this will throw an error if a malformed string (different from 'auto')
+        # is passed
+        # self.ent_coef = float(self.ent_coef)

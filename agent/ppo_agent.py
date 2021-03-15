@@ -3,7 +3,7 @@ from itertools import chain
 import gym
 import torch
 import torch.nn as nn
-from gym.spaces import Box
+from gym.spaces import Box, Discrete
 
 from agent.base_agent import Agent
 from network.basic_model import MLP
@@ -57,10 +57,13 @@ class PPOAgent(Agent, nn.Module):
         log_prob = log_prob.cpu().numpy()
         value = value.cpu().numpy()
 
+        if isinstance(self.env.action_space, Discrete):
+            action = action.item()
         return log_prob, action, value
 
     def compute_loss(self, batch, optimizer_idx) -> [torch.Tensor, torch.Tensor, torch.Tensor]:
-        state, action, old_logp, qval, adv, infos = batch
+        state, action, old_logp, qval, adv = batch
+        action, old_logp, adv = action.squeeze(), old_logp.squeeze(), adv.squeeze()
         adv = (adv - adv.mean()) / adv.std()
         # TODO: Refer to Baselines for a better implementation
 
@@ -71,15 +74,17 @@ class PPOAgent(Agent, nn.Module):
         actor_loss = -(torch.min(ratio * adv, clip_adv)).mean()
 
         value = self.critic(state)
-        critic_loss = (qval - value).pow(2).mean()
+        critic_loss = self.args.vf_coef * (qval - value).pow(2).mean()
+        entropy_loss = - self.args.ent_coef * self.actor.entropy(pi)
 
         train_info = {
             "actor_loss": actor_loss,
-            "critic_loss": critic_loss
+            "critic_loss": critic_loss,
+            "entropy_loss": entropy_loss
         }
 
         if optimizer_idx == 0:
-            loss = actor_loss
+            loss = actor_loss + entropy_loss
         elif optimizer_idx == 1:
             loss = critic_loss
         else:
@@ -103,3 +108,38 @@ class PPOAgent(Agent, nn.Module):
             self.reset(train)
 
         return new_state, reward, done, info, action, log_prob, value
+
+
+class A2CAgent(PPOAgent):
+    """
+    Implementation of Policy Gradient Based Agent
+    """
+
+    # TODO: Conceptually, PPO Agent should inherit A2C Agent, rather than the other way around
+    def __init__(self, args, component) -> None:
+        super().__init__(args, component)
+
+    def compute_loss(self, batch, optimizer_idx) -> [torch.Tensor, torch.Tensor, torch.Tensor]:
+        state, action, old_logp, qval, adv = batch
+        action, old_logp, adv = action.squeeze(), old_logp.squeeze(), adv.squeeze()
+        value = self.critic(state)
+        pi, _ = self.actor(state)
+        logp = self.actor.get_log_prob(pi, action)
+
+        actor_loss = -(adv * logp).mean()
+        critic_loss = (qval - value).pow(2).mean()
+        entropy_loss = - self.args.ent_coef * self.actor.entropy(pi)
+
+        train_info = {
+            "actor_loss": actor_loss,
+            "critic_loss": critic_loss,
+            "entropy_loss": entropy_loss
+        }
+
+        if optimizer_idx == 0:
+            loss = actor_loss + entropy_loss
+        elif optimizer_idx == 1:
+            loss = critic_loss
+        else:
+            loss = None
+        return loss, train_info

@@ -103,18 +103,18 @@ class TimestepWrapper(Wrapper):
         # high = np.append(self.env.observation_space.high, np.array([np.inf]))
         # self.observation_space = gym.spaces.Box(low, high)
         self.time_step = 0
-        self.max_step = env.unwrapped.spec.max_episode_steps
-        print("max_step: ", self.max_step)
+        # self.max_step = env.unwrapped.spec.max_episode_steps
+        # print("max_step: ", self.max_step)
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
         self.time_step += 1
         # obs = np.append(obs, np.array(self.time_step * self.scale))
-        if done and self.time_step < self.max_step:
-            truly_done = True
-        else:
-            truly_done = False
-        info['truly_done'] = truly_done
+        # if done and self.time_step < self.max_step:
+        #     truly_done = True
+        # else:
+        #     truly_done = False
+        # info['truly_done'] = truly_done
         return obs, reward, done, info
 
     def reset(self):
@@ -148,6 +148,8 @@ class MonitorWrapper(Wrapper):
         self.discount_episode_reward = 0
         self.episode_length = 0
         self.num_episodes = 0
+        self.max_step = env.unwrapped.spec.max_episode_steps
+        print("max_step: ", self.max_step)
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
@@ -160,6 +162,11 @@ class MonitorWrapper(Wrapper):
             info['epi_returns'] = self.episode_reward
             info['epi_discount_returns'] = self.discount_episode_reward
             info['num_episodes'] = self.num_episodes
+        if done and self.episode_length < self.max_step:
+            truly_done = True
+        else:
+            truly_done = False
+        info['truly_done'] = truly_done
         return obs, reward, done, info
 
     def reset(self, **kwargs):

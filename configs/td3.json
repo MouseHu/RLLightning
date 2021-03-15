@@ -11,6 +11,7 @@
   "gamma": 0.99,
   "policy_noise": 0.2,
   "explore_noise": 0.1,
+  "target_freq": 1,
   "training_freq": 100,
   "training_steps": 100,
   "noise_clip": 0.5,

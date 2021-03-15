@@ -44,7 +44,7 @@ class Actor(nn.Module):
         mu = self.mu(hidden)
         log_std = self.log_std(hidden)
         std = torch.clip(log_std, self.log_std_bounds[0], self.log_std_bounds[1]).exp()
-        pi = mu + torch.normal(0, 1, mu.shape) * std
+        pi = mu + torch.normal(0, 1, mu.shape).type_as(mu) * std
         logp_pi = gaussian_likelihood(pi, mu, log_std)
         entropy = gaussian_entropy(log_std)
         deterministic_policy, policy, logp_pi = apply_squashing_func(mu, pi, logp_pi)

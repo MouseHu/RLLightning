@@ -22,7 +22,8 @@ class DDPGAgent(ActorCriticAgent):
 
         with torch.no_grad():
             next_actions = self.actor_target(next_states)
-            target_q = self.critic_target(next_states, next_actions)
+            q_tp1 = self.critic_target(next_states, next_actions)
+            target_q = rewards + (1 - dones) * self.gamma * q_tp1
 
         q = self.critic(states, actions)
         critic_loss = F.mse_loss(q, target_q)

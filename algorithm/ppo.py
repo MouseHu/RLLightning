@@ -8,6 +8,7 @@ from typing import List
 
 from algorithm.base_learner import BaseLearner
 from buffer.dataset import ExperienceSourceDataset
+from utils.func_utils import merge_dicts
 
 
 class PPOLearner(BaseLearner):
@@ -20,28 +21,28 @@ class PPOLearner(BaseLearner):
         self.hparams = args
         self.runner = component.buffer
         self.running_infos = []
+        assert self.args.eval_freq % self.args.steps_per_epoch == 0, \
+            "ppo requires eval freq be the multiple of steps per epoch, otherwise it is never evaluated"
         self.populate(0)
 
     def training_step(self, batch, batch_idx, optimizer_idx):
 
         loss, train_info = self.agent.compute_loss(batch, optimizer_idx)
-        # running_infos = batch[-1]
-        # self.running_infos += running_infos
         if optimizer_idx == 0 and self.global_step % self.args.log_freq == 0:
             for info_name, info_value in train_info.items():
                 self.log("losses/{}".format(info_name), info_value)
 
-        if optimizer_idx == 0 and self.global_step % self.args.eval_freq == 0:
+        if optimizer_idx == 0 and self.num_steps % self.args.eval_freq == 0:
             self.evaluate(self.args.eval_episodes)
         return loss
 
-    # def on_epoch_end(self) -> None:
-    #     prefix = 'train/'
-    #     merged_info = merge_dicts(self.running_infos)
-    #     for k, v in merged_info.items():
-    #         self.log(prefix + k, v, on_step=True, prog_bar='epi_returns' in k)
-    #     self.log(prefix + 'steps', self.num_steps, prog_bar=True)
-    #     self.running_infos = []
+    def on_epoch_end(self) -> None:
+        prefix = 'train/'
+        merged_info = merge_dicts(self.running_infos)
+        for k, v in merged_info.items():
+            self.log(prefix + k, v, prog_bar='epi_returns' in k)
+        self.log(prefix + 'steps', self.num_steps, prog_bar=True)
+        self.running_infos = []
 
     def configure_optimizers(self) -> List[Optimizer]:
         """ Initialize Adam optimizer"""
@@ -50,9 +51,9 @@ class PPOLearner(BaseLearner):
 
         return [optimizer_actor, optimizer_critic]
 
-    def optimizer_step(self, optimizer_closure=None, *args, **kwargs):
+    def optimizer_step(self, *args, **kwargs):
         for _ in range(self.args.nb_optim_iters):
-            super().optimizer_step(optimizer_closure=optimizer_closure, *args, **kwargs)
+            super().optimizer_step(*args, **kwargs)
 
     def get_dataloader(self) -> DataLoader:
         """Initialize the Replay Buffer dataset used for retrieving experiences"""
@@ -66,16 +67,16 @@ class PPOLearner(BaseLearner):
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--env", type=str, default="CartPole-v0")
-        # parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
         parser.add_argument("--lam", type=float, default=0.95, help="advantage discount factor")
         parser.add_argument("--actor_lr", type=float, default=3e-4, help="learning rate of actor network")
         parser.add_argument("--critic_lr", type=float, default=1e-3, help="learning rate of critic network")
         parser.add_argument("--max_episode_len", type=int, default=1000, help="capacity of the replay buffer")
-        parser.add_argument("--eval_freq", type=int, default=5000, help="evaluation freq")
+        parser.add_argument("--eval_freq", type=int, default=8192, help="evaluation freq")
         parser.add_argument("--eval_episodes", type=int, default=5, help="Number of eval episodes")
         parser.add_argument("--hidden_size", type=int, default=128, help="Size of hidden layers")
-        parser.add_argument("--log_freq", type=int, default=100, help="loggging freq")
+        parser.add_argument("--log_freq", type=int, default=100, help="logging freq")
+        parser.add_argument("--ent_coef", type=float, default=0.01, help="coefficient for entropy bonus")
+        parser.add_argument("--vf_coef", type=float, default=0.5, help="coefficient for entropy bonus")
 
         # parser.add_argument("--batch_size", type=int, default=512, help="batch_size when training network")
         parser.add_argument(

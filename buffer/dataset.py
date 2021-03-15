@@ -3,7 +3,7 @@ from typing import Iterable
 from typing import Tuple
 
 from buffer.replay_buffer import ReplayBuffer
-from utils.os_utils import array_min2d
+from utils.func_utils import array_min2d
 
 
 class RLDataset(IterableDataset):

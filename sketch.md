@@ -1,4 +1,4 @@
-#basic idea
+#Basic idea
 Using pytorch + lightning for a easy to use RL framework.
 
 ##Algorithm should include:
@@ -19,5 +19,33 @@ Using pytorch + lightning for a easy to use RL framework.
 ##Functionals should include:
 
 - auto logging and plotting
+  - yes！
 - hyper parameter tuning?
-- expandability 
+  - use Optuna
+- expandability
+  - depends on good disentagling and no boilerplate code 
+
+
+## What should each part do?
+
+###agent
+- should define how to interact with env (given a state and exploration, return an action)
+- should define the learning loss
+
+
+###learner
+- should define the optimizer
+- should define the training step, control how each part is used, e.g. exploration schedule, how long to interact with env and how long to train
+
+
+###buffer/data module
+- should define how to restore(off policy)/generate(on policy) and sample data
+
+### env
+- should define the MDP agent is in
+
+
+#Others
+
+Implement NStep, Noisy, etc. from here:
+https://github.com/djbyrne/core_rl

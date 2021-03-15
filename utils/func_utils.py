@@ -36,7 +36,8 @@ def merge_dicts(infos):
     keys = list(set(list(chain.from_iterable([list(info.keys()) for info in infos]))))
     merged_info = dict()
     for k in keys:
-        values = [info.get(k, np.nan) for info in infos]
+        values = [np.array(info.get(k, np.nan)) for info in infos]
+        values = np.array(values).reshape(-1)
         if all([isinstance(v, Number) for v in values]):  # only scalars are recorded
             mean_value = np.nanmean(values)
             merged_info[k] = mean_value

@@ -24,6 +24,9 @@ class ActorCategorical(nn.Module):
     def get_log_prob(self, pi: Categorical, actions: torch.Tensor):
         return pi.log_prob(actions)
 
+    def entropy(self, pi: Categorical):
+        return pi.entropy()
+
 
 class ActorContinous(nn.Module):
     """
@@ -46,3 +49,6 @@ class ActorContinous(nn.Module):
 
     def get_log_prob(self, pi: Normal, actions: torch.Tensor):
         return pi.log_prob(actions).sum(axis=-1)
+
+    def entropy(self, pi: Normal):
+        return pi.entropy().sum(dim=1).mean()

@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from typing import List
 from numbers import Number
 from buffer.dataset import RLDataset
-from utils.os_utils import merge_dicts
+from utils.func_utils import merge_dicts
 
 
 class AbstractLearner(pl.LightningModule):
@@ -85,7 +85,8 @@ class BaseLearner(AbstractLearner):
             if done or self.num_steps % self.args.log_freq == 0:
                 prefix = 'train/'
                 for k, v in info.items():
-                    if isinstance(v, Number):  # dict value is temporally removed, it can be added in the future
+                    if 'truncated' not in k and isinstance(v, Number):
+                        # dict value is temporally removed, it can be added in the future
                         self.log(prefix + k, v, on_step=True, prog_bar='epi_returns' in k)
                 self.log(prefix + 'steps', self.num_steps, prog_bar=True)
 
@@ -100,7 +101,8 @@ class BaseLearner(AbstractLearner):
         prefix = 'eval/'
         merged_info = merge_dicts(infos)
         for k, v in merged_info.items():
-            self.log(prefix + k, v, on_step=True, prog_bar='epi_returns' in k)
+            if 'truncated' not in k:
+                self.log(prefix + k, v, prog_bar='epi_returns' in k)
         self.log(prefix + 'steps', self.num_steps, prog_bar=True)
 
     def populate(self, steps: int = 1000) -> None:

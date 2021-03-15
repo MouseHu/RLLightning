@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List
-from utils.os_utils import array_min2d
+
+from utils.func_utils import array_min2d
 
 
 class Runner(object):
@@ -26,6 +27,7 @@ class Runner(object):
         batch_infos, batch_qvals, batch_logp, batch_adv = [], [], [], []
         ep_rewards, ep_values = [], []
         for step in range(self.steps_per_epoch):
+            self.learner.num_steps += 1
             batch_states.append(self.agent.state)
             new_state, reward, done, info, action, log_prob, value = self.agent.step(self.learner.get_state())
 
@@ -39,7 +41,7 @@ class Runner(object):
             epoch_end = step == (self.steps_per_epoch - 1)
             terminal = len(ep_rewards) == self.max_episode_len
             if epoch_end or done or terminal:
-                if (terminal or epoch_end) and not info.get("truly_done", done):
+                if (terminal or epoch_end) and not done:
                     last_value = self.agent.critic(self.learner.get_state()).item()
                 else:
                     last_value = 0
@@ -49,13 +51,13 @@ class Runner(object):
                 batch_adv += self.calc_advantage(ep_rewards, ep_values, last_value)
                 ep_rewards = []
                 ep_values = []
-
+        self.learner.running_infos += batch_infos
         train_data = zip(
             array_min2d(batch_states), array_min2d(batch_actions), array_min2d(batch_logp),
-            array_min2d(batch_qvals), array_min2d(batch_adv), batch_infos
+            array_min2d(batch_qvals), array_min2d(batch_adv)
         )
-        for state, action, logp_old, qval, adv, info in train_data:
-            yield state, action, logp_old, qval, adv, info
+        for state, action, logp_old, qval, adv in train_data:
+            yield state, action, logp_old, qval, adv
 
     @staticmethod
     def discount_rewards(rewards: List[float], discount) -> List[float]:
