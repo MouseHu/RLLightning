@@ -1,10 +1,10 @@
 # RL Lightning
 A Research-Oriented RL Framework Using Pytorch-Lightning
 
-#Basic idea
+# Basic idea
 Using pytorch + lightning for an easy to use RL framework.
 
-##Algorithm should include:
+## Algorithm should include:
 - DQN
 - Multi-step DQN
 - Prioritized DQN
@@ -19,7 +19,7 @@ Using pytorch + lightning for an easy to use RL framework.
 - EMDQN?
 
 
-##Functionals should include:
+## Functionals should include:
 
 - auto logging and plotting
   - yes！
@@ -33,22 +33,22 @@ Using pytorch + lightning for an easy to use RL framework.
 
 ## What should each part do?
 
-###agent
+### agent
 - should define how to interact with env (given a state and exploration, return an action)
 - should define the learning loss
 
 
-###learner
+### learner
 - should define the optimizer
 - should define the training step, control how each part is used, e.g. exploration schedule, how long to interact with env and how long to train
 
-###buffer/data module
+### buffer/data module
 - should define how to restore(off policy)/generate(on policy) and sample data
 
 ### env
 - should define the MDP agent is in
 
-#Others
+# Others
 
 Implement NStep, Noisy, etc. from here:
 https://github.com/djbyrne/core_rl
