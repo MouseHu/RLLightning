@@ -1,5 +1,6 @@
-# RLLightning
+# RL Lightning
 A Research-Oriented RL Framework Using Pytorch-Lightning
+
 #Basic idea
 Using pytorch + lightning for an easy to use RL framework.
 
@@ -41,13 +42,11 @@ Using pytorch + lightning for an easy to use RL framework.
 - should define the optimizer
 - should define the training step, control how each part is used, e.g. exploration schedule, how long to interact with env and how long to train
 
-
 ###buffer/data module
 - should define how to restore(off policy)/generate(on policy) and sample data
 
 ### env
 - should define the MDP agent is in
-
 
 #Others
 
