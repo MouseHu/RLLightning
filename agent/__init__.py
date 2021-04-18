@@ -11,5 +11,8 @@ agent_list = {
     "sac": SACAgent,
     "ddpg": DDPGAgent,
     "ppo": PPOAgent,
-    "a2c": A2CAgent
+    "a2c": A2CAgent,
+    "dueling": DQNAgent,
+    "double": DQNAgent,
+    "noisy": DQNAgent
 }

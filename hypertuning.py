@@ -1,8 +1,10 @@
+import optuna
 import pytorch_lightning as pl
 
 from utils.common import get_args, setup, get_path
 
 args = get_args()
+
 env, eval_env, replay_buffer, agent, learner = setup(args)
 
 trainer = pl.Trainer(gpus=1, accelerator='dp', max_steps=args.total_steps,

@@ -1,10 +1,10 @@
 import argparse
 from argparse import Namespace
-from torch.optim.optimizer import Optimizer
 
 import torch
-from typing import Tuple,List
 import torch.optim as optim
+from torch.optim.optimizer import Optimizer
+from typing import Tuple, List
 
 from algorithm.base_learner import BaseLearner
 
@@ -18,7 +18,7 @@ class DQNLearner(BaseLearner):
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], nb_batch):
         # Calculates training loss
-        loss, train_info = self.agent.compute_loss(batch)
+        loss, train_info = self.agent.compute_loss(batch, nb_batch)
 
         self.rollout(num_step=self.args.update_freq)
 
@@ -54,6 +54,10 @@ class DQNLearner(BaseLearner):
         parser.add_argument("--eps_end", type=float, default=0.01, help="final value of epsilon")
         parser.add_argument("--max_test_step", type=int, default=2000, help="max steps for testing")
         parser.add_argument("--eval_freq", type=int, default=2500, help="max steps for testing")
+        parser.add_argument("--log_freq", type=int, default=100, help="max steps for testing")
         parser.add_argument("--eval_episodes", type=int, default=5, help="max episodes for testing")
+        parser.add_argument("--network", type=str, default="dqn", help="network configuration for dqn")
+        parser.add_argument("--double", type=bool, default=False, help="whether or not to use double dqn")
+        parser.add_argument("--n_step", type=int, default=1, help="use n-step bootstrapping")
 
         return parser

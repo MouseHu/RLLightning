@@ -1,5 +1,8 @@
+# RL Lightning
+A Research-Oriented RL Framework Using Pytorch-Lightning
+
 #Basic idea
-Using pytorch + lightning for a easy to use RL framework.
+Using pytorch + lightning for an easy to use RL framework.
 
 ##Algorithm should include:
 - DQN
@@ -14,16 +17,20 @@ Using pytorch + lightning for a easy to use RL framework.
 - PPO
 - A2C?
 - EMDQN?
+- Rainbow?
+
 
 
 ##Functionals should include:
 
 - auto logging and plotting
   - yes！
-- hyper parameter tuning?
+- easy hyper-parameter saving and loading
+- hyper parameter tuning
   - use Optuna
 - expandability
-  - depends on good disentagling and no boilerplate code 
+  - Well inherited and disentangled code 
+  - No boilerplate code 
 
 
 ## What should each part do?
@@ -37,13 +44,11 @@ Using pytorch + lightning for a easy to use RL framework.
 - should define the optimizer
 - should define the training step, control how each part is used, e.g. exploration schedule, how long to interact with env and how long to train
 
-
 ###buffer/data module
 - should define how to restore(off policy)/generate(on policy) and sample data
 
 ### env
 - should define the MDP agent is in
-
 
 #Others
 

@@ -16,7 +16,7 @@ def get_meta_args():
     parser = argparse.ArgumentParser(description='RL Meta Argparser')
     parser.add_argument('--agent', help='backend agent', type=str, default='dqn')
     parser.add_argument('--algo', help='backend algorithm', type=str, default='dqn')
-    parser.add_argument("--env_type", help='which type of env to use', type=str, default='Atari')
+    parser.add_argument("--env_type", help='which type of env to use', type=str, default='toy')
     parser.add_argument("--eval_on_same", help='whether or not to eval on same env', type=bool, default=True)
     parser.add_argument('--load_json',
                         help='Load settings from file in json format. Command line options override values in file.')
@@ -53,14 +53,14 @@ def get_parser(meta_args):
 
 
 def get_args():
-    # args = get_parser().parse_args()
     meta_args = get_meta_args()
     args = Namespace()
     if meta_args.load_json:
         with open(meta_args.load_json, 'rt') as f:
             json_dict = json.load(f)
+            meta_json_dict = {k: v for k, v in json_dict.items() if k in meta_args.__dict__.keys()}
             args.__dict__.update(json_dict)
-            meta_args.__dict__.update(json_dict)
+            meta_args.__dict__.update(meta_json_dict)
     args, _ = get_parser(meta_args).parse_known_args(namespace=args)
     args.__dict__.update(meta_args.__dict__)
     return args

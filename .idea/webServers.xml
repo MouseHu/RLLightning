@@ -5,7 +5,7 @@
       <webServer id="5850a636-8c51-4da3-955e-acaf18711a91" name="160" url="http://101.6.98.160">
         <fileTransfer rootFolder="/home/hh" accessType="SFTP" host="101.6.98.160" port="6022" sshConfigId="65671351-09b9-4fbc-b671-7d2d5d726358" sshConfig="hh@101.6.98.160:6022 password">
           <advancedOptions>
-            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
           </advancedOptions>
         </fileTransfer>
       </webServer>

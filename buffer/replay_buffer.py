@@ -1,24 +1,19 @@
+import os
+import pickle as pkl
 import random
+
 import numpy as np
 from typing import List, Union
 
 
-# from stable_baselines.common.vec_env import VecNormalize
-
-
 class ReplayBuffer(object):
     def __init__(self, args, component):
-        """
-        Implements a ring buffer (FIFO).
-
-        :param size: (int)  Max number of transitions to store in the buffer. When the buffer overflows the old
-            memories are dropped.
-        """
         self.args = args
         self.component = component
-        size = args.buffer_size
+
         self._storage = []
-        self._maxsize = size
+        self._maxsize = args.buffer_size
+        self._rews_scale = args.rews_scale
         self._next_idx = 0
 
     def __len__(self) -> int:
@@ -26,7 +21,6 @@ class ReplayBuffer(object):
 
     @property
     def storage(self):
-        """[(Union[np.ndarray, int], Union[np.ndarray, int], float, Union[np.ndarray, int], bool)]: content of the replay buffer"""
         return self._storage
 
     @property
@@ -35,75 +29,54 @@ class ReplayBuffer(object):
         return self._maxsize
 
     def can_sample(self, n_samples: int) -> bool:
-        """
-        Check if n_samples samples can be sampled
-        from the buffer.
-
-        :param n_samples: (int)
-        :return: (bool)
-        """
         return len(self) >= n_samples
 
     def is_full(self) -> int:
-        """
-        Check whether the replay buffer is full or not.
-
-        :return: (bool)
-        """
         return len(self) == self.buffer_size
 
     def add(self, obs_t, action, reward, done, obs_tp1):
-        """
-        add a new transition to the buffer
-
-        :param obs_t: (Union[np.ndarray, int]) the last observation
-        :param action: (Union[np.ndarray, int]) the action
-        :param reward: (float) the reward of the transition
-        :param obs_tp1: (Union[np.ndarray, int]) the current observation
-        :param done: (bool) is the episode done
-        """
         data = (obs_t, action, reward, done, obs_tp1)
 
         if self._next_idx >= len(self._storage):
             self._storage.append(data)
         else:
             self._storage[self._next_idx] = data
+        cur_place = self._next_idx
         self._next_idx = (self._next_idx + 1) % self._maxsize
+        return cur_place
 
     def extend(self, obs_t, action, reward, obs_tp1, done):
-        """
-        add a new batch of transitions to the buffer
-
-        :param obs_t: (Union[Tuple[Union[np.ndarray, int]], np.ndarray]) the last batch of observations
-        :param action: (Union[Tuple[Union[np.ndarray, int]]], np.ndarray]) the batch of actions
-        :param reward: (Union[Tuple[float], np.ndarray]) the batch of the rewards of the transition
-        :param obs_tp1: (Union[Tuple[Union[np.ndarray, int]], np.ndarray]) the current batch of observations
-        :param done: (Union[Tuple[bool], np.ndarray]) terminal status of the batch
-
-        Note: uses the same names as .add to keep compatibility with named argument passing
-                but expects iterables and arrays with more than 1 dimensions
-        """
+        idxes = []
         for data in zip(obs_t, action, reward, obs_tp1, done):
             if self._next_idx >= len(self._storage):
                 self._storage.append(data)
             else:
                 self._storage[self._next_idx] = data
+            idxes.append(self._next_idx)
             self._next_idx = (self._next_idx + 1) % self._maxsize
+        return idxes
+
+    def get_next_id(self, idx):
+        return (idx + 1) % len(self)
+
+    def get_data(self, idx):
+        return self._storage[idx]
 
     def _encode_sample(self, idxes: Union[List[int], np.ndarray]):
         obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
-        for i in idxes:
-            data = self._storage[i]
+        for idx in idxes:
+            data = self.get_data(idx)
             obs_t, action, reward, done, obs_tp1 = data
             obses_t.append(np.array(obs_t, copy=False))
             actions.append(np.array(action, copy=False))
             rewards.append(reward)
             obses_tp1.append(np.array(obs_tp1, copy=False))
             dones.append(done)
+
         if len(np.array(obses_t).shape) > 2:
             # image input
-            obses_t = np.array(obses_t).astype(np.float32)/255.0
-            obses_tp1 = np.array(obses_tp1).astype(np.float32)/255.0
+            obses_t = np.array(obses_t).astype(np.float32) / 255.0
+            obses_tp1 = np.array(obses_tp1).astype(np.float32) / 255.0
 
         return (np.array(obses_t),
                 np.array(actions),
@@ -112,20 +85,32 @@ class ReplayBuffer(object):
                 np.array(obses_tp1),
                 )
 
-    def sample(self, batch_size: int, **_kwargs):
-        """
-        Sample a batch of experiences.
+    @property
+    def sample_range(self):
+        # return the range of sample. It is useful when n-step is used
+        return 0, len(self) - 1
 
-        :param batch_size: (int) How many transitions to sample.
-        :param env: (Optional[VecNormalize]) associated gym VecEnv
-            to normalize the observations/rewards when sampling
-        :return:
-            - obs_batch: (np.ndarray) batch of observations
-            - act_batch: (numpy float) batch of actions executed given obs_batch
-            - rew_batch: (numpy float) rewards received as results of executing act_batch
-            - next_obs_batch: (np.ndarray) next set of observations seen after executing act_batch
-            - done_mask: (numpy bool) done_mask[i] = 1 if executing act_batch[i] resulted in the end of an episode
-                and 0 otherwise.
-        """
-        idxes = [random.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
+    def sample(self, batch_size: int, **_kwargs):
+        idxes = [random.randint(*self.sample_range) for _ in range(batch_size)]
         return self._encode_sample(idxes)
+
+    def clean(self):
+        del self._storage
+        self._storage = []
+        self._next_idx = 0
+
+    def save(self, file_dir):
+        save_dict = {"storage": self._storage, "max_size": self._maxsize}
+        with open(os.path.join(file_dir, "replay_buffer.pkl"), "wb") as memory_file:
+            pkl.dump(save_dict, memory_file)
+
+
+class ReplayBufferWrapper(object):
+    def __init__(self, base_buffer: ReplayBuffer):
+        self.base_buffer = base_buffer
+
+    def __getattr__(self, name):
+        try:
+            return getattr(self.base_buffer, name)
+        except AttributeError:
+            return getattr(self, name)
