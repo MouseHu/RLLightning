@@ -93,7 +93,7 @@ class BaseLearner(AbstractLearner):
         i=0
         while episodes < num_episode:
             i+=1
-            new_state, reward, done, info, *_ = self.agent.step(self.get_state(train=False), 0, train=False)
+            new_state, reward, done, info, *_ = self.agent.step( 0, train=False)
             #print("stepping {}".format(i))
             if done:
                 #print("episode done")

@@ -57,4 +57,7 @@ impala，R2D2, A3C 研究一下Agent和采数据到底是什么关系。
 
 训练正常速度：半天5million
 
-下一步：在atari上调通所有基本算法；整理网络；整理leaner；支持并行环境；支持分布式训练；支持调超参。
+下一步：整理leaner；支持并行环境；支持调超参。
+
+支持vectorized env and impala这类分布式算法？
+先支持vectorized env吧.

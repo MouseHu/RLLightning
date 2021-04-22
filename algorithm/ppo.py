@@ -32,7 +32,7 @@ class PPOLearner(BaseLearner):
             for info_name, info_value in train_info.items():
                 self.log("losses/{}".format(info_name), info_value, prog_bar=True)
 
-        if optimizer_idx == 0 and self.num_steps % self.args.eval_freq == 0:
+        if optimizer_idx == 0 and self.global_step % self.args.eval_freq == 0:
             self.evaluate(self.args.eval_episodes)
         return loss
 

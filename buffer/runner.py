@@ -21,6 +21,8 @@ class Runner(object):
         self.learner = self.components.learner
 
     def generate_samples(self):
+        #这里应该是agent与vectorized Env交互
+
         if self.agent is None or self.learner is None:
             self.register()
         batch_states, batch_actions, batch_dones = [], [], []
@@ -44,7 +46,7 @@ class Runner(object):
             terminal = len(ep_rewards) == self.max_episode_len
             if epoch_end or done or terminal:
                 if (terminal or epoch_end) and not done:
-                    last_value = self.agent.critic(self.learner.get_state()).item()
+                    last_value = self.agent.critic(self.agent.get_state()).item()
                 else:
                     last_value = 0
                 # discounted cumulative reward

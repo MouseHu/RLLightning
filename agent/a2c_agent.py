@@ -10,6 +10,8 @@ from network.basic_model import MLP,NatureCNN
 from network.ppo_model import ActorContinous, ActorCategorical
 from agent.actor_critic_agent import ActorCriticAgent
 
+from env.env import SubprocVectorEnv
+
 class A2CAgent(ActorCriticAgent):
     def __init__(self, args, component) -> None:
         ActorCriticAgent.__init__(self,args,component)
@@ -85,6 +87,11 @@ class A2CAgent(ActorCriticAgent):
 
         return new_state, reward, done, info, action, log_prob, value
 
+    def step_vec_env(self, epsilon: float = 0.0):
+        assert isinstance(self.env, SubprocEnvWorker), "this function is only valid in vector env"
+    
+    #维护self.states
+    #get_action对list of state成立吗？
     def get_action(self, state, epsilon: float, train=True):
         pi, action = self.actor(state)
         value = self.critic(state)

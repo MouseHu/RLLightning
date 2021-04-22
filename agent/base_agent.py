@@ -1,6 +1,6 @@
 import gym
 import torch
-
+import numpy as np
 from buffer.replay_buffer import ReplayBuffer
 
 
@@ -17,6 +17,10 @@ class Agent(object):
         self.args = args
         self.state = None
         self.eval_state = None
+        if len(self.env.observation_space.shape) > 1: #for atari env
+            self.normalize = True
+        else:
+            self.normalize = False
         self.reset()
 
     def policy(self, state):
@@ -36,9 +40,9 @@ class Agent(object):
     def get_state(self, train=True):
         state = self.state if train else self.eval_state
         
-        if len(state.shape) >= 1:  # image input
+        if self.normalize:  # image input
             state = state.astype(np.float32) / 255.0  
-        state = torch.tensor([state], device=self.component.leaner.device, dtype=torch.float32)
+        state = torch.tensor([state], device=self.component.learner.device, dtype=torch.float32)
         return state
 
     def get_action(self, state, epsilon: float, train=True):
