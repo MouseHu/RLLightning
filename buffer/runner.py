@@ -26,10 +26,12 @@ class Runner(object):
         batch_states, batch_actions, batch_dones = [], [], []
         batch_infos, batch_qvals, batch_logp, batch_adv = [], [], [], []
         ep_rewards, ep_values = [], []
+        #print(self.steps_per_epoch)256
         for step in range(self.steps_per_epoch):
             self.learner.num_steps += 1
             batch_states.append(self.agent.state)
-            new_state, reward, done, info, action, log_prob, value = self.agent.step(self.learner.get_state())
+
+            new_state, reward, done, info, action, log_prob, value = self.agent.step()
 
             batch_infos.append(info)
             batch_actions.append(action)

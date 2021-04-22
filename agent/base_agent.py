@@ -33,25 +33,16 @@ class Agent(object):
             if self.eval_env is not None:
                 self.eval_state = self.eval_env.reset()
 
+    def get_state(self, train=True):
+        state = self.state if train else self.eval_state
+        
+        if len(state.shape) >= 1:  # image input
+            state = state.astype(np.float32) / 255.0  
+        state = torch.tensor([state], device=self.component.leaner.device, dtype=torch.float32)
+        return state
+
     def get_action(self, state, epsilon: float, train=True):
         raise NotImplementedError
 
-    @torch.no_grad()
     def step(self, state, epsilon: float = 0.0, train=True):
-
-        action = self.get_action(state, epsilon, train)
-
-        # do step in the environment
-        env = self.env if train else self.eval_env
-        new_state, reward, done, info = env.step(action)
-        if train:
-            self.replay_buffer.add(self.state, action, reward, done, new_state)
-
-        if train:
-            self.state = new_state
-        else:
-            self.eval_state = new_state
-
-        if done:
-            self.reset(train)
-        return new_state, reward, done, info
+        raise NotImplementedError

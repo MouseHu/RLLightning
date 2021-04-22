@@ -1,10 +1,17 @@
 from env.monitor import Monitor
-from env.vanilla import VanillaEnv
+from env.vanilla import VanillaEnv, VecEnv
 from env.wrapper import *
+from env.atari_wrappers import *
 from utils.func_utils import str2bool
 
 
 def create_atari_env(args, eval=False):
+    #NOTE:添加了ram支持
+    if 'ram' in args.env_name:
+        return (VecEnv(args))
+    for name in ['CartPole','MountainCar','Pendulum']:
+        if name in args.env_name:
+            return (VecEnv(args))
     return VanillaEnv(args)
 
 
@@ -41,7 +48,7 @@ def add_atari_args(parser, prefixes):
                             default=False)
         parser.add_argument('--' + prefix + 'noop', help='number of noop actions while starting new episode',
                             type=np.int32,
-                            default=30)
+                            default=5)
         parser.add_argument('--' + prefix + 'frames', help='number of stacked frames', type=np.int32, default=4)
         parser.add_argument('--' + prefix + 'rews_scale', help='scale of rewards', type=np.float32, default=1.0)
         parser.add_argument('--' + prefix + 'test_eps', help='random action noise in atari testing', type=np.float32,

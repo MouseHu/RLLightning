@@ -39,16 +39,21 @@ Using pytorch + lightning for an easy to use RL framework.
 - should define how to interact with env (given a state and exploration, return an action)
 - should define the learning loss
 
+[//]: <> (should know which state it is in?Yes.)
 
 ###learner
 - should define the optimizer
 - should define the training step, control how each part is used, e.g. exploration schedule, how long to interact with env and how long to train
+- should couple with agent one-to-one?
+  - No.
 
 ###buffer/data module
 - should define how to restore(off policy)/generate(on policy) and sample data
 
 ### env
 - should define the MDP agent is in
+- should do all the wrapping and normalzation?
+  - No.Normalization should be done in training for efficiency.
 
 #Others
 

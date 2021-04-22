@@ -8,6 +8,7 @@ from network.td3_model import Actor, Critic
 class TD3Agent(ActorCriticAgent):
     def __init__(self, args, component) -> None:
         super(TD3Agent, self).__init__(args, component)
+        assert isinstance(self.env.action_space, Box), "Currently actor-critic only support continuous action spaces!"
         state_dim, action_dim, max_action = self.state_dim, self.action_dim, self.max_action
         self.noise_clip = args.noise_clip * max_action
         self.policy_noise = args.policy_noise * max_action

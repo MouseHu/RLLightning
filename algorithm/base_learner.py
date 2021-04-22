@@ -66,44 +66,46 @@ class BaseLearner(AbstractLearner):
         # basic logging
         self.num_steps = 0
 
-    def get_state(self, train=True):
-        state = self.agent.state if train else self.agent.eval_state
-        if len(state.shape) > 1:  # image input
-            state = state.astype(np.float32) / 255.0
-        state = torch.tensor([state], device=self.device, dtype=torch.float32)
-        return state
+
 
     def explore_schedule(self, num_steps):
         raise NotImplementedError
 
     def rollout(self, num_step):
+        # Fill buffer
         # Rollout
         for i in range(num_step):
             self.num_steps += 1
             epsilon = self.explore_schedule(self.num_steps)
-            new_state, reward, done, info = self.agent.step(self.get_state(), epsilon, train=True)
+            new_state, reward, done, info = self.agent.step(epsilon, train=True)
             if done or self.num_steps % self.args.log_freq == 0:
                 prefix = 'train/'
                 for k, v in info.items():
                     if 'truncated' not in k and isinstance(v, Number):
                         # dict value is temporally removed, it can be added in the future
-                        self.log(prefix + k, v, on_step=True, prog_bar='epi_returns' in k)
-                self.log(prefix + 'steps', self.num_steps, prog_bar=True)
+                        self.log(prefix + k, v, prog_bar='epi_returns' in k)
+                self.log(prefix + 'steps', self.num_steps,)
 
     def evaluate(self, num_episode):
         infos = []
         episodes = 0
+        #print(num_episode)
+        i=0
         while episodes < num_episode:
+            i+=1
             new_state, reward, done, info, *_ = self.agent.step(self.get_state(train=False), 0, train=False)
+            #print("stepping {}".format(i))
             if done:
+                #print("episode done")
                 episodes += 1
                 infos.append(info)
+        
         prefix = 'eval/'
         merged_info = merge_dicts(infos)
         for k, v in merged_info.items():
             if 'truncated' not in k:
                 self.log(prefix + k, v, prog_bar='epi_returns' in k)
-        self.log(prefix + 'steps', self.num_steps, prog_bar=True)
+        self.log(prefix + 'steps', self.num_steps)
 
     def populate(self, steps: int = 1000) -> None:
         self.agent.reset(train=False)  # reset eval env

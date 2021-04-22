@@ -35,14 +35,13 @@ class MLP(nn.Module):
         super().__init__()
         self.layers = layers
         self.layer_norm = layer_norm
+        self.acti = nn.LeakyReLU()
         self.mlps = nn.ModuleList([nn.Linear(layers[i], layers[i + 1]) for i in range(len(self.layers) - 1)])
 
     def forward(self, x):
         for i, linear in enumerate(self.mlps):
             x = linear(x)
             if i < len(self.mlps) - 1:
-                x = nn.ReLU()(x)
-                # if self.layer_norm:
-                #     x = nn.LayerNorm(x)
+                x = self.acti(x)   
 
         return x

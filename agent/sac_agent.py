@@ -11,6 +11,7 @@ from network.sac_model import Actor, Critic
 class SACAgent(ActorCriticAgent):
     def __init__(self, args, component) -> None:
         super(SACAgent, self).__init__(args, component)
+        assert isinstance(self.env.action_space, Box), "Currently actor-critic only support continuous action spaces!"
         self.log_ent_coef = None
 
         state_dim = self.state_dim

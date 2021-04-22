@@ -24,19 +24,18 @@ class ActorCriticLearner(BaseLearner):
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], nb_batch, optimizer_idx):
         # Calculate training loss
         loss, train_info = self.agent.compute_loss(batch, optimizer_idx)
-
         if optimizer_idx == 0:
             if self.global_step % self.args.training_steps == 0:
                 self.rollout(num_step=self.args.training_freq)
 
             # Evaluation
-            if self.global_step % self.args.eval_freq == 0:
+            if self.num_steps % self.args.eval_freq == 0:
                 self.evaluate(num_episode=self.args.eval_episodes)
 
             if self.global_step % self.args.log_freq == 0:
                 for info_name, info_value in train_info.items():
-                    self.log("losses/{}".format(info_name), info_value)
-
+                    self.log("losses/{}".format(info_name), info_value, prog_bar=True)
+        
         if optimizer_idx == 1:
             # Soft update of target network
             if self.global_step % self.args.target_freq * self.args.policy_delay == 0:

@@ -28,9 +28,9 @@ class PPOLearner(BaseLearner):
     def training_step(self, batch, batch_idx, optimizer_idx):
 
         loss, train_info = self.agent.compute_loss(batch, optimizer_idx)
-        if optimizer_idx == 0 and self.global_step % self.args.log_freq == 0:
+        if optimizer_idx == 0 and self.num_steps % self.args.log_freq == 0:
             for info_name, info_value in train_info.items():
-                self.log("losses/{}".format(info_name), info_value)
+                self.log("losses/{}".format(info_name), info_value, prog_bar=True)
 
         if optimizer_idx == 0 and self.num_steps % self.args.eval_freq == 0:
             self.evaluate(self.args.eval_episodes)
@@ -51,9 +51,9 @@ class PPOLearner(BaseLearner):
 
         return [optimizer_actor, optimizer_critic]
 
-    def optimizer_step(self, *args, **kwargs):
-        for _ in range(self.args.nb_optim_iters):
-            super().optimizer_step(*args, **kwargs)
+    # def optimizer_step(self, *args, **kwargs):
+    #     for _ in range(self.args.nb_optim_iters):
+    #         super().optimizer_step(*args, **kwargs)
 
     def get_dataloader(self) -> DataLoader:
         """Initialize the Replay Buffer dataset used for retrieving experiences"""
@@ -74,11 +74,12 @@ class PPOLearner(BaseLearner):
         parser.add_argument("--eval_freq", type=int, default=8192, help="evaluation freq")
         parser.add_argument("--eval_episodes", type=int, default=5, help="Number of eval episodes")
         parser.add_argument("--hidden_size", type=int, default=128, help="Size of hidden layers")
-        parser.add_argument("--log_freq", type=int, default=100, help="logging freq")
+        parser.add_argument("--log_freq", type=int, default=1024, help="logging freq")
         parser.add_argument("--ent_coef", type=float, default=0.01, help="coefficient for entropy bonus")
         parser.add_argument("--vf_coef", type=float, default=0.5, help="coefficient for entropy bonus")
 
         # parser.add_argument("--batch_size", type=int, default=512, help="batch_size when training network")
+        #参考了openai baseline
         parser.add_argument(
             "--steps_per_epoch",
             type=int,

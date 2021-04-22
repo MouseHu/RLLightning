@@ -197,3 +197,13 @@ class DelayedRewardWrapper(Wrapper):
         self.cum_reward = 0
         self.time_step = 0
         return self.env.reset()
+
+class ScaledWrapper(gym.Wrapper):
+    def __init__(self, env):
+        super().__init__(env.env)# here assume env is RamEnv
+        self.observation_space = gym.spaces.Box(low=0, high=1, shape=env.observation_space.shape, dtype=np.float32)
+
+    def observation(self, observation):
+        # careful! This undoes the memory optimization, use
+        # with smaller replay buffers only.
+        return np.array(observation).astype(np.float32) / 255.0

@@ -18,11 +18,12 @@ class ActorCriticAgent(Agent, nn.Module):
         nn.Module.__init__(self)
         self.component = component
         self.gamma = args.gamma
-
-        assert isinstance(self.env.action_space, Box), "Currently actor-critic only support continuous action spaces!"
         self.state_dim = self.env.observation_space.shape[0]
-        self.action_dim = self.env.action_space.shape[0]
-        self.max_action = float(self.env.action_space.high[0])
+        if isinstance(self.env.action_space, Box):
+            self.action_dim = self.env.action_space.shape[0]
+            self.max_action = float(self.env.action_space.high[0])
+            self.min_action = float(self.env.action_space.low[0])
+            #NOTE:min action can be below zero
         self.actor = self.critic = None
 
     def policy(self, state):
@@ -57,8 +58,8 @@ class ActorCriticAgent(Agent, nn.Module):
             target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
     @torch.no_grad()
-    def step(self, state, epsilon: float = 0.0, train=True):
-
+    def step(self, epsilon: float = 0.0, train=True):
+        state = self.get_state(train= train)
         action = self.get_action(state, epsilon, train)
 
         # do step in the environment

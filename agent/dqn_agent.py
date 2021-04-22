@@ -92,3 +92,23 @@ class DQNAgent(Agent, nn.Module):
 
     def update_target(self):
         self.target_net.load_state_dict(self.net.state_dict())
+
+    @torch.no_grad()
+    def step(self, epsilon: float = 0.0, train=True):
+        state = self.get_state(train = train)
+        action = self.get_action(state, epsilon, train)
+        # do step in the environment
+        env = self.env if train else self.eval_env
+        new_state, reward, done, info = env.step(action)
+        #FIXME:这一步似乎应该交给leaner操作
+        if train:
+            self.replay_buffer.add(self.state, action, reward, done, new_state)
+
+        if train:
+            self.state = new_state
+        else:
+            self.eval_state = new_state
+
+        if done:
+            self.reset(train)
+        return new_state, reward, done, info

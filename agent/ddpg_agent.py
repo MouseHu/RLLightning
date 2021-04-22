@@ -2,17 +2,19 @@ import torch
 import torch.nn.functional as F
 from agent.actor_critic_agent import ActorCriticAgent
 from network.ddpg_model import Actor, Critic
-
+from gym.spaces import Box, Discrete
 
 class DDPGAgent(ActorCriticAgent):
     def __init__(self, args, component) -> None:
         super(DDPGAgent,self).__init__(args,component)
+        assert isinstance(self.env.action_space, Box), "Currently ddpg only support continuous action spaces!"
         state_dim = self.state_dim
         action_dim = self.action_dim
+        min_action = self.min_action
         max_action = self.max_action
 
-        self.actor = Actor(state_dim, action_dim, max_action)
-        self.actor_target = Actor(state_dim, action_dim, max_action)
+        self.actor = Actor(state_dim, action_dim, max_action, min_action)
+        self.actor_target = Actor(state_dim, action_dim, max_action, min_action)
         self.critic = Critic(state_dim, action_dim)
         self.critic_target = Critic(state_dim, action_dim)
         self.update_target()
